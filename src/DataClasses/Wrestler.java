@@ -1,11 +1,12 @@
 package DataClasses;
 
+import java.io.Serializable;
 import wrestlingtournamentcli.*;
 
 /**
  * @author Jared Murphy https://github.com/murphman29
  */
-public class Wrestler implements Comparable{
+public class Wrestler implements Comparable, Serializable{
 
     String firstName;
     String lastName;
@@ -37,9 +38,10 @@ public class Wrestler implements Comparable{
         this.seed = 100;
     }
     
-    public Wrestler(){
+    public Wrestler(int weightClass){
     this.firstName = "";
     this.lastName = "";
+    this.weightClass = weightClass;
     try{
     this.team = Model.teamLookup("BYE");
     this.userName = "   BYE   ";
@@ -86,6 +88,10 @@ public class Wrestler implements Comparable{
     
     public double getRating(){
         return rating;
+    }
+    
+    public String getTeamID(){
+        return team.getTeamName();
     }
     
     public void addMatch(boolean win){

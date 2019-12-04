@@ -1,7 +1,14 @@
 package wrestlingtournamentcli;
 
 import DataClasses.*;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import wrestlingtournamentcli.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,32 +40,187 @@ import java.util.Scanner;
  */
 public class Model {
 
+    private static String tournamentName;
     private static ArrayList<Team> teamList;
     private static ArrayList<Wrestler> wrestlerList;
     private static ArrayList<Integer> weightClasses;
+    private static ArrayList<Bracket> bracketList;
+    private static ArrayList<MatchRecord> matchBank;
     private static int matches;
 
     public Model() {
         this.teamList = new ArrayList();
         this.wrestlerList = new ArrayList();
+        this.bracketList = new ArrayList();
+        this.matchBank = new ArrayList();
         this.teamList.add(new Team("BYE", "", ""));
         initializeWeightClasses();
         matches = 0;
     }
-    
-     public static void generateTournament() {
+
+    public static void generateTournament() {
         if (wrestlerList.size() == 0 || teamList.size() == 1) {
             System.out.println("Error: No Wrestlers or Teams Found");
             System.out.println("Please add wrestlers/teams before generating a tournament.");
             return;
+        }else if(bracketList.size() != 0){
+            System.out.println("Are you sure you want to restart this tournament?\ny=yes n=abort");
+            Scanner s = new Scanner(System.in);
+            if(s.next().equals("y")){
+                System.out.println("Clearing old tournament and making another...");
+            }else{
+                System.out.println("Operation aborted.");
+                return;
+            }
+               
+            bracketList.clear();
         }
-        
+        Collections.sort(wrestlerList);
+        ArrayList<Wrestler> temp = new ArrayList();
+        int currentClass = 0;
+        for (Wrestler w : wrestlerList) {
+            if (w.getWeightClass() == currentClass) {
+                temp.add(w);
+            } else {
+                if (temp.size() != 0) {
+                    bracketList.add(new Bracket(temp));
+                    temp.clear();
+                    currentClass = w.getWeightClass();
+                    temp.add(w);
+                } else {
+                    currentClass = w.getWeightClass();
+                    temp.add(w);
+                }
+            }
+        }
+        if (temp.size() != 0) {
+            bracketList.add(new Bracket(temp));
+        }
     }
-     
-    public static int getMatchID(){
+    
+    public static void advanceTournament(){
+    for(Bracket b: bracketList){
+        b.nextRound();
+    }
+    }
+    
+    public static void setTournamentName(String name){
+         tournamentName = name;
+    }
+    
+   public static void saveTournament(){
+       if(tournamentName != null && tournamentName.length() > 1){
+         saveTournament(tournamentName);
+       }else{
+        System.out.println("Error: Tournament not saved because no name was found.\n"
+                + "Please use the command: SAVE %tournamentName% to set the name and save,\n"
+                + "or NAME %tournamentName% to set the name of the tournament.");
+       }
+   }
+
+    public static void saveTournament(String baseName) {
+        try {
+            File desktop = new File(System.getProperty("user.home"), "Desktop");
+            File storageArea = new File(desktop.getPath() + "\\Saved Tournaments");
+            if(!storageArea.exists()){
+            storageArea.mkdir();
+            }
+            File wrestlers = new File(storageArea.getPath() + "\\" + baseName + "_wrestlers.bin");
+            File teams = new File(storageArea.getPath() + "\\" + baseName + "_teams.bin");
+            File brackets = new File(storageArea.getPath() + "\\" + baseName + "_brackets.bin");
+            File matches = new File(storageArea.getPath() + "\\" + baseName + "_matches.bin");
+            File settings = new File(storageArea.getPath() + "\\" + baseName + "_settings.bin");
+            if (wrestlers.exists()) {
+                wrestlers.delete();
+            }
+            if (teams.exists()) {
+                teams.delete();
+            }
+            if (brackets.exists()) {
+                brackets.delete();
+            }
+            if (matches.exists()) {
+                brackets.delete();
+            }
+            if (settings.exists()) {
+                settings.delete();
+            }
+            wrestlers.createNewFile();
+            teams.createNewFile();
+            brackets.createNewFile();
+            matches.createNewFile();
+            settings.createNewFile();
+            ObjectOutputStream os_wrestlers = new ObjectOutputStream(new FileOutputStream(wrestlers));
+            ObjectOutputStream os_teams = new ObjectOutputStream(new FileOutputStream(teams));
+            ObjectOutputStream os_brackets = new ObjectOutputStream(new FileOutputStream(brackets));
+            ObjectOutputStream os_matchList = new ObjectOutputStream(new FileOutputStream(matches));
+            os_wrestlers.writeObject(wrestlerList);
+            os_teams.writeObject(teamList);
+            os_brackets.writeObject(bracketList);
+            os_matchList.writeObject(matchBank);
+            os_wrestlers.flush();
+            os_teams.flush();
+            os_brackets.flush();
+            os_matchList.flush();
+            os_wrestlers.close();
+            os_teams.close();
+            os_brackets.close();
+            os_matchList.close();
+            writeSettings(settings);
+            System.out.println("Saved this many objects:\n\tWrestlers: " + wrestlerList.size() + "\n\tTeams: " + teamList.size() + "\n\tBrackets: "+ bracketList.size());
+        } catch (Exception e) {
+            System.out.println("Error saving tournament!");
+        }
+    }
+    
+        public static void loadTournament(String baseName) {
+        try {
+            File desktop = new File(System.getProperty("user.home"), "Desktop");
+            File storageArea = new File(desktop.getPath() + "\\Saved Tournaments");
+            File wrestlers = new File(storageArea.getPath() + "\\" + baseName + "_wrestlers.bin");
+            File teams = new File(storageArea.getPath() + "\\" + baseName + "_teams.bin");
+            File brackets = new File(storageArea.getPath() + "\\" + baseName + "_brackets.bin");
+            File matches = new File(storageArea.getPath() + "\\" + baseName + "_matches.bin");
+            File settings = new File(storageArea.getPath() + "\\" + baseName + "_settings.bin");
+            ObjectInputStream is_wrestlers = new ObjectInputStream(new FileInputStream(wrestlers));
+            ObjectInputStream is_teams = new ObjectInputStream(new FileInputStream(teams));
+            ObjectInputStream is_brackets = new ObjectInputStream(new FileInputStream(brackets));
+            ObjectInputStream is_matches = new ObjectInputStream(new FileInputStream(matches));
+            wrestlerList = (ArrayList<Wrestler>) is_wrestlers.readObject();
+            teamList = (ArrayList<Team>) is_teams.readObject(); 
+            bracketList =  (ArrayList<Bracket>) is_brackets.readObject();
+            matchBank = (ArrayList<MatchRecord>) is_matches.readObject();
+            is_wrestlers.close();
+            is_teams.close();
+            is_brackets.close();
+            is_matches.close();
+            //loadSettings(settings); No settings to be included at this time
+            System.out.println("Loaded this many objects:\n\tWrestlers: " + wrestlerList.size() + "\n\tTeams: " + teamList.size() + "\n\tBrackets: "+ bracketList.size());
+        } catch (Exception e) {
+            System.out.println("Error loading tournament!");
+        }
+    }
+    
+    
+
+    public static void writeSettings(File settings) throws Exception {
+        BufferedWriter bw = new BufferedWriter(new FileWriter(settings));
+        bw.append("Match_Count: " + matches);
+        bw.flush();
+        bw.close();
+    }
+
+    public static int getMatchID(MatchRecord mr) {//Trades a MatchRecord for a MatchNumber
+        matchBank.add(mr);
         matches++;
         return matches;
     }
+    
+    public static void updateMatch(int matchID, String winningColor, int greenPoints, int redPoints, int fallType, String fallTime){
+        int[] location = matchBank.get(matchID-1).getLocation();
+        bracketList.get(location[0]).updateMatch(location[1],location[2],winningColor, greenPoints, redPoints, fallType, fallTime);
+    }
+
     //Takes in a wrestler's name and returns a nine character username
     //Ideally, it will use 6 from the lastname and 3 from the firstname.
     //If lastName.length < 6, it will switch over to the firstName early
@@ -104,8 +266,6 @@ public class Model {
             System.out.println(e.getMessage());
         }
     }
-
-   
 
     public static void updateWrestlerSeed(String alias, int seed) {
         try {
@@ -276,6 +436,15 @@ public class Model {
         weightClasses.add(220);
         weightClasses.add(285);
         Collections.sort(weightClasses);
+    }
+    
+    public static int getWeightClassPosition(int weightClass){
+        for(int i = 0; i != weightClasses.size();i++){
+          if(weightClasses.get(i) == weightClass){
+              return i;
+          }
+        }
+        return -1;//Didn't find it
     }
 
     public static boolean verifyWeightClass(int weightClass) {

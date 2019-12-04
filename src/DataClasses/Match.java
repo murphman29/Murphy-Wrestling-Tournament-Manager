@@ -1,5 +1,6 @@
 package DataClasses;
 
+import java.io.Serializable;
 import wrestlingtournamentcli.*;
 
 /**
@@ -25,11 +26,13 @@ import wrestlingtournamentcli.*;
  * +int:getGreenPoints() +int:getRedPoints() +String:toString()
  * +int:CompareTo(Object o)
  */
-public class Match implements Comparable{
+public class Match implements Comparable, Serializable{
 
     private int matchID;
     private String greenWrestler;
     private String redWrestler;
+    private String greenTeam;
+    private String redTeam;
     private int matNumber;
     private int fallType; //Before being placed into the match details, it will be converted from a String to an integer. pin = 6, tech = 5, major decision = 4, decision = 3, BYE = 1
     private String fallTime;
@@ -40,10 +43,12 @@ public class Match implements Comparable{
     private int round;
     private int weightClass;
 
-    public Match(int matchID, String green, String red, int matID, int round, int weightClass) {//For matches that are being assigned a mat immediately
+    public Match(int matchID, String green, String greenTeam, String red, String redTeam, int matID, int round, int weightClass) {//For matches that are being assigned a mat immediately
         this.matchID = matchID;
         this.greenWrestler = green;
+        this.greenTeam = greenTeam;
         this.redWrestler = red;
+        this.redTeam = redTeam;
         this.matNumber = matID;
         this.round = round;
         this.weightClass = weightClass;
@@ -53,10 +58,12 @@ public class Match implements Comparable{
         fallTime = "";
     }
 
-    public Match(int matchID, String green, String red, int round, int weightClass) { //For matches that aren't taking place quite yet
+    public Match(int matchID, String green, String greenTeam, String red, String redTeam, int round, int weightClass) {//For matches that are being assigned a mat immediately
         this.matchID = matchID;
         this.greenWrestler = green;
+        this.greenTeam = greenTeam;
         this.redWrestler = red;
+        this.redTeam = redTeam;
         this.matNumber = -1;
         this.round = round;
         this.weightClass = weightClass;
@@ -64,6 +71,16 @@ public class Match implements Comparable{
         greenPoints = 0;
         redPoints = 0;
         fallTime = "";
+    }
+    
+    public Match(){ //
+        this.matchID = 0;
+        this.greenWrestler = "   TBD   ";
+        this.redWrestler = "   TBD   ";
+    }
+    
+    public void setMatchID(int matchID){
+        this.matchID = matchID;
     }
 
     public void setMatID(int matID) {
@@ -88,6 +105,20 @@ public class Match implements Comparable{
                 return greenWrestler;
             } else {
                 return redWrestler;
+            }
+        } else {
+            Exception e = new NotFoundException(this);
+            System.out.println(e.getMessage());
+            return "ERROR    ";
+        }
+    }
+    
+        public String getWinnerTeam() { //Returns only a username so that the wrestler's record can be updated in the model.
+        if (complete) {
+            if (winningColor.equals("GREEN")) {
+                return greenTeam;
+            } else {
+                return redTeam;
             }
         } else {
             Exception e = new NotFoundException(this);
@@ -140,6 +171,11 @@ public class Match implements Comparable{
         this.redPoints = redPoints;
         this.fallTime = fallTime;
         complete = true;
+    }
+    //Can hold up to 500 total references. The y column is used to store [bracketPosition, roundNumber, matchInRound, greenWrestler, redWrestler]
+    public MatchRecord generateMatchRecord(int roundNumber, int matchInRound){
+       int pos = Model.getWeightClassPosition(weightClass);
+       return new MatchRecord(pos,roundNumber,matchInRound,weightClass,greenWrestler,greenTeam,redWrestler,redTeam);
     }
 
     private int StringToFallType(String s) {

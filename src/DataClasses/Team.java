@@ -1,5 +1,7 @@
 package DataClasses;
 
+import java.io.Serializable;
+
 /**
  * @author Jared Murphy
  * https://github.com/murphman29
@@ -23,7 +25,7 @@ package DataClasses;
 	+void:removeTeamScore(int score)
 	+int:compareTo(Object o)
  */
-public class Team implements Comparable{
+public class Team implements Comparable, Serializable{
 String teamName;
 String teamInitials;
 String mascot;
